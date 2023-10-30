@@ -49,13 +49,8 @@ def precipitation():
 @app.route("/api/v1.0/stations")
 def stations():
     """Return a JSON list of stations from the dataset."""
-    # Create a new session for this request
-    session = Session(engine)
     station_list = session.query(Station.station).all()
     stations = [station[0] for station in station_list]
-
-    # Close the session
-    session.close()
     
     return jsonify(stations)
 
@@ -84,58 +79,26 @@ def tobs():
     return jsonify(tobs_list)
 
 @app.route("/api/v1.0/<start>")
-
-
-
 def temp_stats_start(start):
     """Return JSON list of TMIN, TAVG, and TMAX for all dates greater than or equal to the start date."""
-    # Create a new session for this request
-    session = Session(engine)
-   # (Measurement.date, Measurement.tobs)
-    results = session.query(Measurement.date, func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).all() \
-       # .filter(Measurement.date >= start) \
-        
+    results = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)) \
+        .filter(Measurement.date >= start) \
+        .all()
     
-    # Close the session
-    session.close()
+    temp_stats = [{"TMIN": result[0], "TAVG": result[1], "TMAX": result[2]} for result in results]
     
-    if results:
-        temp_stats = [{"Date": result[0], "TMIN": result[1], "TAVG": result[2], "TMAX": result[3]} for result in results]
-        return jsonify(temp_stats)
-    else:
-        return jsonify({"message": "No data available for the specified date range."}), 404  # Return a 404 status code for "Not Found"
-
+    return jsonify(temp_stats)
 
 @app.route("/api/v1.0/<start>/<end>")
 def temp_stats_start_end(start, end):
-    """Return JSON list of TMIN, TAVG, and TMAX for the range between the first and last date in the date column."""
-    # Create a new session for this request
-    session = Session(engine)
+    """Return JSON list of TMIN, TAVG, and TMAX for dates within the specified date range."""
+    results = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)) \
+        .filter(Measurement.date >= start, Measurement.date <= end) \
+        .all()
     
-    # Calculate the minimum and maximum dates in the date column
-    first_date = session.query(func.min(Measurement.date)).scalar()
-    last_date = session.query(func.max(Measurement.date)).scalar()
+    temp_stats = [{"TMIN": result[0], "TAVG": result[1], "TMAX": result[2]} for result in results]
     
-    # Calculate TMIN, TAVG, and TMAX for the entire date range
-    result = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)) \
-        .filter(Measurement.date >= first_date, Measurement.date <= last_date) \
-        .first()
-
-    # Format the result
-    temperature_stats = {
-        "Start Date": first_date,
-        "End Date": last_date,
-        "TMIN": result[0],
-        "TAVG": result[1],
-        "TMAX": result[2]
-    }
-    
-    # Close the session
-    session.close()
-    
-    return jsonify(temperature_stats)
-
-
+    return jsonify(temp_stats)
 
 if __name__ == "__main__":
     app.run(debug=True)
