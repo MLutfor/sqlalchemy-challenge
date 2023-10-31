@@ -22,7 +22,8 @@ app = Flask(__name__)
 # Flask Routes
 @app.route("/")
 def welcome():
-    """List all available API routes."""
+    """List all available API routes."""    
+    
     return (
         f"Welcome to the weather tracking site for Honolulu, Hawaii!<br/><br/>"  # Empty space between lines
         f"Available Routes:<br/><br/>"  # Empty space between lines
@@ -45,6 +46,9 @@ def precipitation():
     
     prcp_dict = {date: prcp for date, prcp in prcp_data}
     
+    # Close the session
+    session.close()
+
     return jsonify(prcp_dict)
 
 @app.route("/api/v1.0/stations")
@@ -60,29 +64,49 @@ def stations():
     
     return jsonify(stations)
 
+from collections import OrderedDict
+
 @app.route("/api/v1.0/tobs")
 def tobs():
-    """Return the temperature observations for the most active station (last 12 months) as JSON."""
+    """Return the temperature observations for the most active station within the previous 12 months as JSON."""
+    
+    # Calculate the date one year ago from the most recent date in the database
+    most_recent_date = dt.datetime.strptime(session.query(func.max(Measurement.date)).scalar(), '%Y-%m-%d')
+    one_year_ago = most_recent_date - dt.timedelta(days=365)
+    
+    # Query the station with the most activity within the previous year
     most_active_station = session.query(Measurement.station, func.count(Measurement.station)) \
+        .filter(Measurement.date >= one_year_ago) \
         .group_by(Measurement.station) \
         .order_by(func.count(Measurement.station).desc()) \
         .first()
     
     most_active_station_id = most_active_station[0]
     
-    last_date = session.query(func.max(Measurement.date)) \
-        .filter(Measurement.station == most_active_station_id) \
-        .scalar()
-    last_date = dt.datetime.strptime(last_date, '%Y-%m-%d')
-    one_year_ago = last_date - dt.timedelta(days=365)
+    # Get the station name of the most active station
+    most_active_station_name = session.query(Station.name).filter(Station.station == most_active_station_id).scalar()
     
+    # Query temperature observations for the most active station within the previous year
     tobs_data = session.query(Measurement.date, Measurement.tobs) \
         .filter(Measurement.station == most_active_station_id, Measurement.date >= one_year_ago) \
         .all()
     
-    tobs_list = [{"date": date, "temperature": tobs} for date, tobs in tobs_data]
+    tobs_list = {
+        "Data": [{"date": date, "temperature": tobs} for date, tobs in tobs_data],
+        "Most Active Station": most_active_station_id,
+        "Station Name": most_active_station_name
+    }
     
+    # Close the session
+    session.close()
+
     return jsonify(tobs_list)
+
+
+
+
+
+
 
 @app.route("/api/v1.0/<start>")
 def temp_stats_start(start):
