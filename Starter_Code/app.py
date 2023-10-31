@@ -24,14 +24,15 @@ app = Flask(__name__)
 def welcome():
     """List all available API routes."""
     return (
-        f"Welcome to the website!<br/>"
-        f"Available Routes.:<br/>"
-        f"/api/v1.0/precipitation - Precipitation data for the last 12 months<br/>"
-        f"/api/v1.0/stations - List of stations<br/>"
-        f"/api/v1.0/tobs - Temperature observations for the most active station (last 12 months)<br/>"
-        f"/api/v1.0/start_date - Temperature statistics (TMIN, TAVG, TMAX) from the start date to the latest date.  Minimum start_date to type is 2010-01-01.  <br/>"
-        f"/api/v1.0/start_date/end_date - Temperature statistics (TMIN, TAVG, TMAX) within the specified date rang. Maximum end_date to type is 2017-08-23."
+        f"Welcome to the weather tracking site for Honolulu, Hawaii!<br/><br/>"  # Empty space between lines
+        f"Available Routes:<br/><br/>"  # Empty space between lines
+        f"/api/v1.0/precipitation - Precipitation data for the last 12 months<br/><br/>"  # Empty space between lines
+        f"/api/v1.0/stations - List of stations<br/><br/>"  # Empty space between lines
+        f"/api/v1.0/tobs - Temperature observations for the most active station (last 12 months)<br/><br/>"  # Empty space between lines
+        f"/api/v1.0/start_date - Temperature statistics (TMIN, TAVG, TMAX) from the start date to the latest date. Minimum start_date to type is 2010-01-01.<br/><br/>"  # Empty space between lines
+        f"/api/v1.0/start_date/end_date - Temperature statistics (TMIN, TAVG, TMAX) within the specified date range. Maximum end_date to type is 2017-08-23."
     )
+
 
 @app.route("/api/v1.0/precipitation")
 def precipitation():
