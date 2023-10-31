@@ -110,19 +110,23 @@ def temp_stats_start(start):
 
 @app.route("/api/v1.0/<start>/<end>")
 def temp_stats_start_end(start, end):
-    """Return JSON list of TMIN, TAVG, and TMAX for the specified date range."""
+    """Return JSON list of TMIN, TAVG, and TMAX for the range between the first and last date in the date column."""
     # Create a new session for this request
     session = Session(engine)
     
-    # Query temperature statistics for the specified date range
+    # Calculate the minimum and maximum dates in the date column
+    first_date = session.query(func.min(Measurement.date)).scalar()
+    last_date = session.query(func.max(Measurement.date)).scalar()
+    
+    # Calculate TMIN, TAVG, and TMAX for the entire date range
     result = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)) \
-        .filter(Measurement.date >= start, Measurement.date <= end) \
+        .filter(Measurement.date >= first_date, Measurement.date <= last_date) \
         .first()
 
     # Format the result
     temperature_stats = {
-        "Start Date": start,
-        "End Date": end,
+        "Start Date": first_date,
+        "End Date": last_date,
         "TMIN": result[0],
         "TAVG": result[1],
         "TMAX": result[2]
