@@ -1,6 +1,7 @@
 # Import the dependencies.
 from flask import Flask, jsonify
 import datetime as dt
+import pandas as pd
 from sqlalchemy import create_engine, func
 from sqlalchemy.orm import Session
 from sqlalchemy.ext.automap import automap_base
@@ -37,15 +38,12 @@ def welcome():
 
 @app.route("/api/v1.0/precipitation")
 def precipitation():
-    """Return the last 12 months of precipitation data as JSON."""
-    last_date = session.query(func.max(Measurement.date)).scalar()
-    last_date = dt.datetime.strptime(last_date, '%Y-%m-%d')
-    one_year_ago = last_date - dt.timedelta(days=365)
+    # Load the data from the CSV file
+    precipitation_df = pd.read_csv('Resources/One_Year_precipitation_data.csv')
     
-    prcp_data = session.query(Measurement.date, Measurement.prcp).filter(Measurement.date >= one_year_ago).all()
-    
-    prcp_dict = {date: prcp for date, prcp in prcp_data}
-    
+    # Convert the DataFrame to a dictionary
+    prcp_dict = precipitation_df.set_index('Date')['Precipitation'].to_dict()
+
     # Close the session
     session.close()
 
