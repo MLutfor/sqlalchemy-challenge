@@ -84,17 +84,18 @@ def tobs():
     return jsonify(tobs_list)
 
 @app.route("/api/v1.0/<start>")
-
-
-
 def temp_stats_start(start):
-    """Return JSON list of TMIN, TAVG, and TMAX for all dates greater than or equal to the start date."""
+    """Return JSON list of TMIN, TAVG, and TMAX for all dates greater than or equal to the start date and less than or equal to the end date."""
     # Create a new session for this request
     session = Session(engine)
-   # (Measurement.date, Measurement.tobs)
-    results = session.query(Measurement.date, func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).all() \
-       # .filter(Measurement.date >= start) \
-        
+    
+    # Calculate the maximum date in the dataset
+    end_date = session.query(func.max(Measurement.date)).scalar()
+    
+    # Query temperature statistics for the specified date range
+    results = session.query(Measurement.date, func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)) \
+        .filter(Measurement.date >= start, Measurement.date <= end_date) \
+        .all()
     
     # Close the session
     session.close()
@@ -106,25 +107,22 @@ def temp_stats_start(start):
         return jsonify({"message": "No data available for the specified date range."}), 404  # Return a 404 status code for "Not Found"
 
 
+
 @app.route("/api/v1.0/<start>/<end>")
 def temp_stats_start_end(start, end):
-    """Return JSON list of TMIN, TAVG, and TMAX for the range between the first and last date in the date column."""
+    """Return JSON list of TMIN, TAVG, and TMAX for the specified date range."""
     # Create a new session for this request
     session = Session(engine)
     
-    # Calculate the minimum and maximum dates in the date column
-    first_date = session.query(func.min(Measurement.date)).scalar()
-    last_date = session.query(func.max(Measurement.date)).scalar()
-    
-    # Calculate TMIN, TAVG, and TMAX for the entire date range
+    # Query temperature statistics for the specified date range
     result = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)) \
-        .filter(Measurement.date >= first_date, Measurement.date <= last_date) \
+        .filter(Measurement.date >= start, Measurement.date <= end) \
         .first()
 
     # Format the result
     temperature_stats = {
-        "Start Date": first_date,
-        "End Date": last_date,
+        "Start Date": start,
+        "End Date": end,
         "TMIN": result[0],
         "TAVG": result[1],
         "TMAX": result[2]
